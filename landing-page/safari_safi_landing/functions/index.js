@@ -6,12 +6,12 @@ admin.initializeApp();
 
 
 let transporter = nodemailer.createTransport({
-    host: "smtp-relay.sendinblue.com",
+    host: "sendinggrid",
     port: 587,
     secure: false,
     auth: {
         user: "apikey",
-        pass: "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"
+        pass: "apikey"
     }
 });
 
