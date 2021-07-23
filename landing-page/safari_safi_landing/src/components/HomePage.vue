@@ -21,12 +21,20 @@
                        
                         <div class="border p-3 p-md-5 bg-white rounded shadow">
                             <h2>Coming Soon!</h2>
-                            <form>
+                            <form @submit.prevent="addEmail(email)">
                                 <div class="form-group">
                                     <label for="emailSignup">Reserve Your Account Now.We will Contanct You When It's Live.</label>
-                                    <input id="emailSingup" placeholder="Enter Email" >
+                                    <input 
+                                        v-model="email" 
+                                        type="email"
+                                        id="emailSingup" 
+                                        placeholder="Enter Email" 
+                                        class="form-control">
                                     <small id="emailHelp" class="form-text text-muted">We'll Never Share Your Email Address.</small>
                                     <button type="submit" class="btn btn-success mt-3">Join Waiting List</button>
+                                    <div class="mt-4">
+                                        <p class="m-0">{{ message }}</p>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -101,19 +109,36 @@
             </div>
         </div>
 
-         <div id="contact" class="p-4">
+        <div id="contact" class="p-4">
             <div class="row justify-content-center mt-3 mb-3">
-                <div class="col-lg-4">
+                <div v-if="show_contact == true" class="col-lg-4">
                     <h2>Have Any Questions?.</h2>
                     <p>Contact us by filling out the information below</p>
 
-                    <form>
+                    <div v-if="contact_notice != ''" class="alert alert-warning">
+                        There was a problem submitting your message. {{ contact_notice }}
+                    </div>
+
+                    <form @submit.prevent="sendContactMessage()">
                         <div class="form-group text-left">
-                            <input type="email" class="form-control" placeholder="Enter Your Email">
-                            <textarea class="form-control mt-3" placeholder="Enter Your Message" rows="5"></textarea>
+                            <input
+                                v-model="contact_email" 
+                                type="email" 
+                                class="form-control" 
+                                placeholder="Enter Your Email">
+                            <textarea
+                                v-model="contact_message"  
+                                class="form-control mt-3" 
+                                placeholder="Enter Your Message" 
+                                rows="5"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Send Message</button>
                     </form>
+                </div>
+
+                <div v-else>
+                    <h3>Message Sent Successfully!</h3>
+                    <p>Thank you for contacting us, we'll get back to you as soon as we can.</p>
                 </div>
             </div>
         </div>
@@ -124,7 +149,7 @@
                     Enjoy Zumba Music
                 </a>
                 <br>
-                <small>&copy; 2021, Fan Fit Kenya</small>
+                <small>&copy; 2021 Fan Fit Kenya</small>
             </footer>
             
         </div>
@@ -134,11 +159,69 @@
 </template>
 
 <script>
+import { Auth } from '@/firebase/auth.js'
+
+
 export default {
     data(){
         return {
-            title: 'Mazoezi Ya Mwili'
+            title: 'Mazoezi Ya Mwili',
+            email: '',
+            message: '',
+            contact_email: '',
+            contact_message: '',
+            contact_notice: '',
+            show_contact: true,
         }
+    },
+
+    methods: {
+        async addEmail(email) {
+            var noticeMessage = "🎉 Your account has been reserved 🎉";
+            await Auth.createUserWithEmailAndPassword(email, this.randomPassword(10))
+                .catch(function(error) {    
+                    if (error.code != "auth/email-already-in-use") {
+                        noticeMessage = error.message;
+                    }
+                });
+            this.message = noticeMessage;
+            this.email = '';
+        },
+
+        randomPassword(length) {
+            var chars = "abcdefghijklmnopqrstuvwxyz!@#$%^&*()-+<>ABCDEFGHIJKLMNOP";
+            var password = "";
+            for (var x = 0; x < length; x++) {
+                var i = Math.floor(Math.random() * chars.length);
+                password += chars.charAt(i);
+            }
+
+            return password;
+        },
+
+        sendContactMessage() {
+            if (!this.validEmail(this.contact_notice)) {
+                this.contact_notice = 'The email address is badly formatted.'
+            } else if (this.contact_message.length < 10) {
+                this.contact_notice = "Your message is too short";
+            } else {
+                const url = `https://console.firebase.google.com/u/0/project/landing-page-1faab/functions
+                    /sendEmail?email_from${this.contact_email}&message=${this.contact_message}`
+
+                const requestOptions = {
+                    methods: "GET",
+                    headers: { "Content-Type": "application/json" }
+                };
+
+                fetch(url, requestOptions);
+                this.show_contact = false;
+            }
+        },
+
+        validEmail(email) {
+            var re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(email);
+    }
     }
 }
 </script>
